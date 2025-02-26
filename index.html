@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>炎と水のアニメーション - 強化版</title>
+    <title>Fire Fighting</title>
     <style>
         body {
             margin: 0;
@@ -27,7 +27,7 @@
     </style>
 </head>
 <body>
-    <div id="instructions">画面をタップして炎と水を切り替え</div>
+    <div id="instructions">Tap the screen to switch between flame and water</div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // シーンの設定
@@ -300,6 +300,9 @@
             const colors = particleSystem.geometry.attributes.color.array;
             const sizes = particleSystem.geometry.attributes.size.array;
             
+            // 発生地点（火元）の定義
+            const originY = -1.0;
+            
             for (let i = 0; i < particleCount; i++) {
                 // 速度に基づいて位置を更新
                 positions[i * 3] += velocities[i * 3] * deltaTime * 60;
@@ -313,14 +316,23 @@
                 // 左右にゆらぐ
                 positions[i * 3] += Math.sin(Date.now() * 0.001 + i) * 0.01 * deltaTime * 60;
                 
-                // 炎の先端ほど明るく
-                const brightness = positions[i * 3 + 1] / 3 + 0.5;
-                colors[i * 3] = Math.min(brightness, 1.0); // 赤
-                colors[i * 3 + 1] = Math.min(brightness * 0.7, 0.7); // 緑
+                // 発生地点からの距離を計算
+                const dx = positions[i * 3];
+                const dy = positions[i * 3 + 1] - originY;
+                const dz = positions[i * 3 + 2];
+                const distanceFromOrigin = Math.sqrt(dx*dx + dy*dy + dz*dz);
                 
-                // サイズも高さによって変化（先端で小さく）
-                const heightRatio = Math.max(0, 1 - positions[i * 3 + 1] / 3);
-                sizes[i] = Math.max(0.2, heightRatio * 1.0) + Math.random() * 0.2;
+                // 距離に基づいてエフェクトを調整
+                const distanceFactor = Math.max(0.2, 1.2 - distanceFromOrigin / 4.0);
+                
+                // 炎の先端ほど明るく（高さと距離の両方を考慮）
+                const brightness = Math.min((positions[i * 3 + 1] / 3 + 0.5) * distanceFactor, 1.0);
+                colors[i * 3] = brightness; // 赤
+                colors[i * 3 + 1] = brightness * 0.7; // 緑
+                
+                // サイズを距離に応じて調整（発生地点から離れるほど小さく）
+                const baseSize = Math.max(0.2, distanceFactor * 0.8) + Math.random() * 0.2 * distanceFactor;
+                sizes[i] = baseSize;
                 
                 // モーションブラーの方向を速度に合わせる
                 const speed = Math.sqrt(
@@ -330,7 +342,9 @@
                 );
                 
                 // 速度に応じてサイズを増加（モーションブラー効果）
-                sizes[i] *= (1 + speed * 3);
+                // 発生地点から離れるほどブラー効果を小さく
+                const blurIntensity = 1 + speed * 3 * distanceFactor;
+                sizes[i] *= blurIntensity;
                 
                 // 一定の高さを超えたら下に戻す
                 if (positions[i * 3 + 1] > 3 || Math.random() > 0.997) {
