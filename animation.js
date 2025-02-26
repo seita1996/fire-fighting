@@ -77,7 +77,7 @@ fireLight.position.set(0, 0, 2);
 scene.add(fireLight);
 
 // 炎のパーティクルシステム - 大幅に増加
-const particleCount = 1200;
+const particleCount = 800;
 const particles = new THREE.BufferGeometry();
 const positions = new Float32Array(particleCount * 3);
 const colors = new Float32Array(particleCount * 3);
@@ -277,9 +277,12 @@ function animateFire(deltaTime) {
         positions[i * 3 + 1] += velocities[i * 3 + 1] * deltaTime * 60;
         positions[i * 3 + 2] += velocities[i * 3 + 2] * deltaTime * 60;
         
-        // 速度をわずかに変化させる（揺らぎを表現）
-        velocities[i * 3] += (Math.random() - 0.5) * 0.005;
-        velocities[i * 3 + 2] += (Math.random() - 0.5) * 0.005;
+        // 速度をわずかに変化させる（揺らぎを表現） - 水平方向の揺らぎを減らす
+        velocities[i * 3] += (Math.random() - 0.5) * 0.003;
+        velocities[i * 3 + 2] += (Math.random() - 0.5) * 0.003;
+        
+        // 上方向への力を追加（上昇力を強める）
+        velocities[i * 3 + 1] += 0.0005;
         
         // 左右にゆらぐ
         positions[i * 3] += Math.sin(Date.now() * 0.001 + i) * 0.01 * deltaTime * 60;
@@ -316,15 +319,15 @@ function animateFire(deltaTime) {
         
         // 一定の高さを超えたら下に戻す
         if (positions[i * 3 + 1] > 3 || Math.random() > 0.997) {
-            positions[i * 3] = (Math.random() - 0.5) * 2.5;
+            positions[i * 3] = (Math.random() - 0.5) * 1.8;
             positions[i * 3 + 1] = Math.random() * 0.5 - 1.5;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 2.5;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 1.8;
             sizes[i] = Math.random() * 0.8 + 0.4;
             
-            // 速度をリセット（上向き中心）
-            velocities[i * 3] = (Math.random() - 0.5) * 0.05;
-            velocities[i * 3 + 1] = Math.random() * 0.1 + 0.02;
-            velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.05;
+            // 速度をリセット（上向き中心、水平速度を減らす）
+            velocities[i * 3] = (Math.random() - 0.5) * 0.03;
+            velocities[i * 3 + 1] = Math.random() * 0.15 + 0.05; // 上向きの力を強める
+            velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.03;
         }
     }
     
