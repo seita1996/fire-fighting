@@ -255,13 +255,6 @@ function onWindowResize() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-// カスタムモーションブラーテクスチャを更新
-function updateParticleTexture(particle, aspectRatio, rotation) {
-    // 実装が複雑になるため、ここでは省略
-    // 実際の実装では、各パーティクルに対して個別のテクスチャを割り当てることで
-    // 移動方向に応じたモーションブラーを表現できます
-}
-
 // 炎のアニメーション
 function animateFire(deltaTime) {
     const positions = particleSystem.geometry.attributes.position.array;
@@ -340,57 +333,53 @@ function animateFire(deltaTime) {
 function animateWater(deltaTime) {
     const positions = waterSystem.geometry.attributes.position.array;
     const sizes = waterSystem.geometry.attributes.size.array;
+    const colors = waterSystem.geometry.attributes.color.array;
     
     for (let i = 0; i < waterCount; i++) {
-        // 速度に基づいて位置を更新
+        // 速度に基づいて位置を更新（より垂直な動きに）
         positions[i * 3] += waterVelocities[i * 3] * deltaTime * 60;
         positions[i * 3 + 1] += waterVelocities[i * 3 + 1] * deltaTime * 60;
         positions[i * 3 + 2] += waterVelocities[i * 3 + 2] * deltaTime * 60;
         
-        // 重力で加速
-        waterVelocities[i * 3 + 1] -= 0.001 * deltaTime * 60;
+        // 重力で加速（雨の効果を強める）
+        waterVelocities[i * 3 + 1] -= 0.002 * deltaTime * 60;
         
-        // 重力で広がる
-        const distance = Math.sqrt(
-            positions[i * 3] * positions[i * 3] + 
-            positions[i * 3 + 2] * positions[i * 3 + 2]
-        );
+        // 雨粒なのでわずかな横の動きのみ（風の効果）
+        waterVelocities[i * 3] = waterVelocities[i * 3] * 0.99 + (Math.random() - 0.5) * 0.001;
+        waterVelocities[i * 3 + 2] = waterVelocities[i * 3 + 2] * 0.99 + (Math.random() - 0.5) * 0.001;
         
-        if (distance > 0.1) {
-            positions[i * 3] += positions[i * 3] / distance * 0.01 * deltaTime * 60;
-            positions[i * 3 + 2] += positions[i * 3 + 2] / distance * 0.01 * deltaTime * 60;
-        }
-        
-        // 速度に応じたモーションブラー効果
+        // 速度に応じたモーションブラー効果を強化
         const speed = Math.abs(waterVelocities[i * 3 + 1]);
-        // 速度に応じてサイズを調整（速いほど細長く）
-        sizes[i] = Math.min(1.5, Math.max(0.3, 0.5 + speed * 5));
         
-        // 地面に当たったら跳ねるか消える
+        // 速度に応じてサイズを調整（雨滴は細長く）
+        sizes[i] = Math.min(1.8, Math.max(0.2, 0.3 + speed * 8));
+        
+        // 速度が速いほど薄く明るく
+        const brightness = Math.min(1.0, 0.6 + speed * 2);
+        colors[i * 3] = 0.1 * brightness; // 赤
+        colors[i * 3 + 1] = 0.5 * brightness; // 緑
+        colors[i * 3 + 2] = 0.9 * brightness; // 青（より青みがかった色に）
+        
+        // 地面に当たったら新しい雨滴を生成
         if (positions[i * 3 + 1] < -1) {
-            if (Math.random() > 0.7) { // 30%の確率で跳ねる
-                positions[i * 3 + 1] = -0.9;
-                // 反発係数
-                waterVelocities[i * 3] *= 0.8;
-                waterVelocities[i * 3 + 1] = Math.abs(waterVelocities[i * 3 + 1]) * 0.3; // 上向きの速度
-                waterVelocities[i * 3 + 2] *= 0.8;
-                sizes[i] = Math.random() * 0.3 + 0.2; // 跳ねるときは小さく
-            } else { // 消える
-                positions[i * 3 + 1] = Math.random() * 6 + 3;
-                positions[i * 3] = (Math.random() - 0.5) * 5;
-                positions[i * 3 + 2] = (Math.random() - 0.5) * 5;
-                sizes[i] = Math.random() * 0.6 + 0.3;
-                
-                // 速度をリセット
-                waterVelocities[i * 3] = (Math.random() - 0.5) * 0.05;
-                waterVelocities[i * 3 + 1] = -(Math.random() * 0.15 + 0.1);
-                waterVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.05;
-            }
+            // 上部から新しい雨滴を生成
+            positions[i * 3 + 1] = Math.random() * 6 + 3;
+            positions[i * 3] = (Math.random() - 0.5) * 5;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 5;
+            
+            // 雨滴は細く小さく
+            sizes[i] = Math.random() * 0.4 + 0.2;
+            
+            // 速度をリセット（ほぼ垂直方向に）
+            waterVelocities[i * 3] = (Math.random() - 0.5) * 0.03;
+            waterVelocities[i * 3 + 1] = -(Math.random() * 0.25 + 0.15); // より速く
+            waterVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.03;
         }
     }
     
     waterSystem.geometry.attributes.position.needsUpdate = true;
     waterSystem.geometry.attributes.size.needsUpdate = true;
+    waterSystem.geometry.attributes.color.needsUpdate = true;
 }
 
 // 煙のアニメーション
